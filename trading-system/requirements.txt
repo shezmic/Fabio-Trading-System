@@ -1,0 +1,13 @@
+asyncio
+ccxt
+pydantic
+pydantic-settings
+redis
+asyncpg
+websockets
+python-dotenv
+numpy
+pandas
+timescale-vector
+openai
+anthropic
