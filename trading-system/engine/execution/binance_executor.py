@@ -1,6 +1,6 @@
 import ccxt.async_support as ccxt
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from engine.config import config
 import logging
 
@@ -22,7 +22,7 @@ class BinanceExecutor:
         })
         # Sandbox mode if needed
         if config.ENV == "development":
-            self.exchange.set_sandbox_mode(True) # Warning: Check if Binance Futures Sandbox is supported/wanted
+            self.exchange.set_sandbox_mode(True) 
             
     async def initialize(self):
         await self.exchange.load_markets()
@@ -60,3 +60,18 @@ class BinanceExecutor:
         except Exception as e:
             logger.error(f"Fetch position failed: {e}")
             return None
+
+    async def get_all_positions(self) -> List[Dict]:
+        """
+        Fetch all open positions from Binance.
+        """
+        if not self.exchange:
+            await self.initialize()
+            
+        try:
+            # fetch_positions is unified in ccxt
+            positions = await self.exchange.fetch_positions()
+            return positions
+        except Exception as e:
+            logger.error(f"Error fetching positions: {e}")
+            return []

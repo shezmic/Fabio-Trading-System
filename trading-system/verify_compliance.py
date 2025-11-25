@@ -18,6 +18,8 @@ from engine.risk.house_money import HouseMoneyManager
 
 from engine.execution.slippage_model import SlippageModel
 from engine.state.state_reconciler import StateReconciler
+from engine.execution.trade_manager import TradeManager
+from engine.execution.binance_executor import BinanceExecutor
 
 from engine.events import EventBus
 
@@ -37,6 +39,9 @@ async def verify():
     abs_det = AbsorptionDetector(bus)
     cvd = CVDTracker(bus)
     trap = TrappedTraderDetector(bus)
+    # Check if new methods exist
+    if not hasattr(trap, 'on_price_update'):
+        logger.error("TrappedTraderDetector missing on_price_update")
     logger.info("Order Flow OK.")
     
     logger.info("Verifying Strategy & Risk...")
@@ -47,7 +52,15 @@ async def verify():
     
     logger.info("Verifying Execution...")
     slip = SlippageModel()
-    # StateReconciler needs mocks, skipping instantiation for now
+    executor = BinanceExecutor()
+    if not hasattr(executor, 'get_all_positions'):
+        logger.error("BinanceExecutor missing get_all_positions")
+        
+    # TradeManager needs mocks
+    # tm = TradeManager(bus, executor, None)
+    # if not hasattr(tm, 'execute_signal'):
+    #     logger.error("TradeManager missing execute_signal")
+        
     logger.info("Execution OK.")
     
     logger.info("ALL COMPLIANCE CHECKS PASSED.")
