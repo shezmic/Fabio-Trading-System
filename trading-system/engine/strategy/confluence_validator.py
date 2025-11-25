@@ -1,35 +1,54 @@
-from engine.data.schemas import SetupGrade, TradeDirection
-from engine.events import EventBus
+from engine.data.schemas import SetupGrade, OrderFlowSignal
+from engine.state.market_state import MarketStateSnapshot, MarketRegime
 
 class ConfluenceValidator:
     """
     Validates trade setups by checking for confluence across multiple factors.
-    Implements Fabio's "Box Checking" methodology.
+    Grades setups as A, B, or C.
     """
     
     def __init__(self):
-        # Confluence factors
         self.factors = {
-            'bias': False,          # 15m/1h Trend Alignment
-            'poi': False,           # Price at Key Level (VWAP, VAL/VAH)
-            'orderflow': False,     # Absorption/Trapped Traders
-            'follow_through': False, # Aggressive move in direction
-            'micro_structure': False # 15s/1m Structure Break
+            "bias": False,
+            "poi": False,
+            "orderflow": False,
+            "market_state": False,
+            "micro_structure": False
         }
-    
-    def reset(self):
-        """Reset factors for a new potential setup"""
-        for k in self.factors:
-            self.factors[k] = False
-            
-    def update_factor(self, factor: str, value: bool):
-        if factor in self.factors:
-            self.factors[factor] = value
-            
-    def validate(self) -> SetupGrade:
-        """
-        Grade the setup based on checked boxes.
-        """
+        
+    def validate(self, 
+                 bias_aligned: bool, 
+                 near_poi: bool, 
+                 order_flow: OrderFlowSignal, 
+                 market_state: MarketStateSnapshot,
+                 micro_confirmed: bool) -> SetupGrade:
+        
+        # 1. Bias Alignment (Must be aligned with higher timeframe)
+        self.factors["bias"] = bias_aligned
+        
+        # 2. POI (Price must be near key level)
+        self.factors["poi"] = near_poi
+        
+        # 3. Order Flow (Absorption, Trapped Traders, or CVD Divergence)
+        # Strong signal if any of these are present in the right direction
+        of_confluence = (
+            order_flow.absorption_detected or 
+            order_flow.trapped_traders or 
+            order_flow.cvd_divergence
+        )
+        self.factors["orderflow"] = of_confluence
+        
+        # 4. Market State (Are we in a favorable regime?)
+        # e.g., Trend Continuation requires Imbalance or Breakout from Balance
+        state_confluence = False
+        if market_state.regime != MarketRegime.UNKNOWN:
+            state_confluence = True # Simplified for now
+        self.factors["market_state"] = state_confluence
+        
+        # 5. Micro Structure (15s confirmation)
+        self.factors["micro_structure"] = micro_confirmed
+        
+        # Scoring
         score = sum(self.factors.values())
         
         if score == 5:
