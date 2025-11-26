@@ -75,3 +75,17 @@ class BinanceExecutor:
         except Exception as e:
             logger.error(f"Error fetching positions: {e}")
             return []
+
+    async def get_open_orders(self, symbol: str) -> List[Dict]:
+        """
+        Fetch all open orders for a symbol.
+        """
+        if not self.exchange:
+            await self.initialize()
+            
+        try:
+            orders = await self.exchange.fetch_open_orders(symbol)
+            return orders
+        except Exception as e:
+            logger.error(f"Error fetching open orders: {e}")
+            return []

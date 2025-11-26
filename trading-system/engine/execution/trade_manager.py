@@ -35,16 +35,22 @@ class TradeManager:
         4. Submit OCO Exits (SL/TP)
         """
         # 1. Risk Check (Placeholder)
-        # if not self.risk_manager.check(signal): return
+        # if not self.session_guard.can_trade(): return
         
-        # 2. Position Size (Placeholder - assumes signal has entry info, or calculate here)
-        quantity = 0.001 # TODO: Use PositionSizer
+        # 2. Position Size - Now using PositionSizer
+        account_balance = 10000.0  # TODO: Fetch from exchange
+        quantity = self.position_sizer.calculate_size(
+            balance=account_balance,
+            entry_price=signal.entry_price,
+            stop_loss=signal.stop_loss,
+            grade=signal.grade
+        )
         
         # 3. Submit Entry
         order = await self.executor.create_order(
             symbol=signal.symbol,
             side=signal.direction,
-            type="MARKET", # Or LIMIT based on strategy
+            type="MARKET",
             quantity=quantity
         )
         
